@@ -28,9 +28,9 @@ class SwitchData
  */
 public class Switch extends Device
 {	
-	/*static final int NANOS_PER_SECOND = 1_000_000_000;
+	static final int NANOS_PER_SECOND = 1_000_000_000;
 	Hashtable<MACAddress, SwitchData> addressTable;
-	*/
+
 	/**
 	 * Creates a router for a specific host.
 	 * @param host hostname for the router
@@ -39,7 +39,7 @@ public class Switch extends Device
 	public Switch(String host, DumpFile logfile)
 	{
 		super(host,logfile);
-		//addressTable = new Hashtable<MACAddress, SwitchData>();
+		addressTable = new Hashtable<MACAddress, SwitchData>();
 	}
 
 	/**
@@ -49,9 +49,7 @@ public class Switch extends Device
 	 */
 	public void handlePacket(Ethernet etherPacket, Iface inIface)
 	{
-		System.out.println("inIface == null: " + (inIface == null));
-		broadcastPacket(etherPacket, inIface);
-		/*System.out.println("*** -> Received packet: " +
+		System.out.println("*** -> Received packet: " +
                 etherPacket.toString().replace("\n", "\n\t"));
 			
 		// Check address table for destination MAC address
@@ -62,22 +60,19 @@ public class Switch extends Device
 		// If found, check timeout
 		// If timeout < 15, update timeout
 		// If timeout >= timeout, update entry and timeout
-		
+	
 		MACAddress destinationMACAddr = etherPacket.getDestinationMAC();
 		SwitchData destinationEntry = addressTable.get(destinationMACAddr);
 		
 		if (destinationEntry != null && ((double)(System.nanoTime() - destinationEntry.start)/NANOS_PER_SECOND < 15))
 		{
-			// System.out.println("Just a sanity check (dest): " + (destinationEntry == null) + (destinationEntry.outIface == null) + (destinationEntry.start));
 			destinationEntry.start = System.nanoTime();
 			sendPacket(etherPacket, destinationEntry.outIface);
-			// System.out.println("DESTINATION MAC FOUND IN TABLE WITH TIMEOUT < 15");
 		}
 		else
 		{
 			addressTable.remove(destinationMACAddr);
 			broadcastPacket(etherPacket, inIface);
-			// System.out.println("DESTINATION MAC NOT FOUND IN TABLE OR TIMED OUT");
 		}
 
 		MACAddress sourceMACAddr = etherPacket.getSourceMAC();
@@ -85,17 +80,13 @@ public class Switch extends Device
 		
 		if (sourceEntry != null && ((double)(System.nanoTime() - sourceEntry.start)/NANOS_PER_SECOND < 15))
 		{
-			// System.out.println("Just a sanity check (src): " + (sourceEntry == null));
 			sourceEntry.start = System.nanoTime();
-			// System.out.println("SOURCE MAC FOUND IN TABLE WITH TIMEOUT < 15");
 		}
 		else
 		{
 			addressTable.remove(sourceMACAddr);
 			addressTable.put(sourceMACAddr, new SwitchData(inIface, System.nanoTime()));	
-			// System.out.println("SOURCE MAC NOT FOUND IN TABLE OR TIMED OUT" + (inIface == null));
 		}
-		*/
 
 		/********************************************************************/
 		/* TODO: Handle packets                                             */
@@ -107,11 +98,13 @@ public class Switch extends Device
 	public void broadcastPacket(Ethernet etherPacket, Iface inIface)
 	{
 		Collection<Iface> Ifaces = interfaces.values();
-		Ifaces.remove(inIface);
 
 		for (Iface i : Ifaces)
 		{
-			sendPacket(etherPacket, i);
+			if (i != inIface)
+			{
+				sendPacket(etherPacket, i);
+			}
 		}		
 	}
 }

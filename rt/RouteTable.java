@@ -40,6 +40,16 @@ public class RouteTable
 			/*****************************************************************/
 			/* TODO: Find the route entry with the longest prefix match      */
 			
+			System.out.println("IP: " + ip);
+			
+			for (RouteEntry entry : entries) {
+				System.out.println("##########");
+				System.out.println("Mask: " + Integer.toBinaryString(entry.getMaskAddress()));
+				System.out.println("Destination Addr: " + Integer.toBinaryString(entry.getDestinationAddress()));
+				System.out.println("Gateway Addr: " + Integer.toBinaryString(entry.getGatewayAddress()));
+				System.out.println("##########");
+			}	
+	
 			return null;
 			
 			/*****************************************************************/

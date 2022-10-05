@@ -6,6 +6,8 @@ import edu.ut.cs.sdn.vnet.Iface;
 
 import net.floodlightcontroller.packet.Ethernet;
 
+import java.util.Collection;
+
 /**
  * @author Aaron Gember-Jacobson and Anubhavnidhi Abhashkumar
  */
@@ -85,7 +87,14 @@ public class Router extends Device
 		/********************************************************************/
 		/* TODO: Handle packets                                             */
 		
+		routeTable.lookup(10);
 		
+		Collection<Iface> interfaces = this.getInterfaces().values();
+		for (Iface i : interfaces)
+		{
+			System.out.println("Interface " + i.getName() + " IP: " + Integer.toBinaryString(i.getIpAddress()));
+			System.out.println("Interface " + i.getName() + " mask: " + Integer.toBinaryString(i.getSubnetMask()));
+		}		
 		/********************************************************************/
 	}
 }

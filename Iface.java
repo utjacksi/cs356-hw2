@@ -12,7 +12,7 @@ public class Iface
 	private String name;
 	private MACAddress macAddress;
 	private int ipAddress;
-    private int subnetMask;
+	private int subnetMask;
 	
 	public Iface(String name)
 	{
