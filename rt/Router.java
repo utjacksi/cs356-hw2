@@ -112,6 +112,65 @@ public class Router extends Device
 					header.resetChecksum();
 					serialize = header.serialize();
 					header = (IPv4) header.deserialize(serialize, 0 , serialize.length);
+
+					// Checks to see if one of the interfaces' IP is the same as packet's dest IP, if same --> drop packet
+					Collection<Iface> Ifaces = this.getInterfaces().values();
+					boolean isMatch = false;
+
+					for (Iface i : Ifaces)
+					{
+						if (i.getIpAddress() == header.getDestinationAddress())
+						{
+							isMatch = true;
+							break;
+						}
+					}
+					
+					if (!isMatch)
+					{	
+						// Find RouteTable entry with longest prefix match
+						// This entry tells has interface to leave on (destinationAddress) and whether dest host is in next subnet (gatewayAddress)
+						RouteEntry entry = routeTable.lookup(header.getDestinationAddress());
+						System.out.println("Route Table entry dest ip: " + Integer.toBinaryString(entry.getDestinationAddress()));
+						System.out.println("Packet dest ip: " + Integer.toBinaryString(header.getDestinationAddress()));
+						System.out.println("INTERFACE: " + entry.getInterface());
+						System.out.println(arpCache);
+						this.sendPacket(etherPacket, entry.getInterface());
+						
+						if (entry != null)
+						{
+							ArpEntry arpEntry;
+                                                	// Check if dest host is in next subnet, gatewayAddress == 0 if so, gatewayAddress != 0 if not
+                                                	if (entry.getGatewayAddress() == 0) // Dest host is in next subnet; header's dest MAC addr (when updated) reflects dest host's MAC addr
+                                                	{
+								System.out.println("Gateway is 0, sanity check of course.");
+                                                        	arpEntry = arpCache.lookup(header.getDestinationAddress());
+                                                	}
+                                                	else // Dest host is not in next subnet, will have to go to another router; header's dest MAC addr (when updated) reflects next hop's MAC addr
+                                                	{
+                                                		arpEntry = arpCache.lookup(entry.getGatewayAddress());
+							}
+							
+							if (arpEntry != null)
+							{
+								etherPacket.setDestinationMACAddress(arpEntry.getMac().toBytes());
+								etherPacket.setSourceMACAddress(entry.getInterface().getMacAddress().toBytes());
+								this.sendPacket(etherPacket, entry.getInterface());
+							}
+							else // Lookup in ARP cache should not miss
+							{
+								System.out.println("ERROR: ARP CACHE MISS");
+							}
+						}
+						else // Sanity check, if no entry had a prefix match then packet should be dropped; realistically the packet should be sent to default gateway router
+						{
+							System.out.println("NO ENTRY WITH MATCHING PREFIX WAS FOUND IN ROUTE TABLE, PACKET DROPPED");	
+						}
+					}
+					else // Sanity check, if interface IP address matches packet's destination IP address then it should be dropped
+					{
+						System.out.println("INTERFACE IP ADDR MATCHES PACKET DEST IP, PACKET DROPPED");
+					}
 				}
 				else // Sanity check, if TTL = 0 then packet should be dropped
 				{
@@ -123,14 +182,15 @@ public class Router extends Device
 				System.out.println("VERIFICATION OF CHECKSUM FAILED, PACKET DROPPED");
 				// System.out.println("OLD, NEW CHECKSUM: " + initialChecksum + ", " + checksum);
 			}
+
 			
-			System.out.println("Header length: " + header.getHeaderLength() * 4);
-			System.out.println("Checksum value ones complement: " + Integer.toBinaryString(header.getChecksum()));
-			System.out.println("Checksum value ones complement: " + header.getChecksum());
-			System.out.println("Checksum value: " + /*Integer.toBinaryString(*/(~(header.getChecksum()) & 0xffff))/*)*/;
-			System.out.println("Checksum value: " + Integer.toBinaryString(~header.getChecksum() & 0xffff));	
+			
+			// System.out.println("Header length: " + header.getHeaderLength() * 4);
+			// System.out.println("Checksum value ones complement: " + Integer.toBinaryString(header.getChecksum()));
+			// System.out.println("Checksum value ones complement: " + header.getChecksum());
+			// System.out.println("Checksum value: " + /*Integer.toBinaryString(*/(~(header.getChecksum()) & 0xffff))/*)*/;
+			// System.out.println("Checksum value: " + Integer.toBinaryString(~header.getChecksum() & 0xffff));	
 	
-			RouteEntry entry = routeTable.lookup(header.getDestinationAddress());
 			// System.out.println(Integer.toBinaryString(entry.getDestinationAddress()));
 			
 		}
@@ -141,11 +201,11 @@ public class Router extends Device
 		}
 		
 		Collection<Iface> interfaces = this.getInterfaces().values();
-		/*for (Iface i : interfaces)
+		for (Iface i : interfaces)
 		{
 			System.out.println("Interface " + i.getName() + " IP: " + Integer.toBinaryString(i.getIpAddress()));
 			System.out.println("Interface " + i.getName() + " mask: " + Integer.toBinaryString(i.getSubnetMask()));
-		}*/		
+		}	
 		/********************************************************************/
 	}
 }
