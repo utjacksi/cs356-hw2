@@ -39,21 +39,67 @@ public class RouteTable
         {
 			/*****************************************************************/
 			/* TODO: Find the route entry with the longest prefix match      */
+
+			// Naive approach to finding longest prefix match (linearly scanning through entries)
+			int maxPrefixNum = 0;
+			RouteEntry maxPrefixEntry = null;			
+
+			for (RouteEntry entry : entries)
+			{	
+				String prefix = Integer.toBinaryString(ip & entry.getMaskAddress());
+				int prefixNum = NumPrefixMatch(prefix, Integer.toBinaryString(entry.getDestinationAddress()));
+
+				if (prefixNum  > maxPrefixNum)
+				{
+					maxPrefixNum = prefixNum;
+					maxPrefixEntry = entry;
+				}
+				else if (prefixNum == maxPrefixNum) // Sanity check as prefix match count should never be the same across entries
+				{
+					System.out.println("ERROR: TWO ENTRIES IN ROUTETABLE HAVE THE SAME PREFIX COUNT TO IP + MASK");
+				}
+				System.out.println("PREFIX: " + prefix);
+				System.out.println("Destination Addr: " + Integer.toBinaryString(entry.getDestinationAddress()));	
+			}
 			
-			System.out.println("IP: " + ip);
 			
-			for (RouteEntry entry : entries) {
+			/*for (RouteEntry entry : entries) {
 				System.out.println("##########");
 				System.out.println("Mask: " + Integer.toBinaryString(entry.getMaskAddress()));
 				System.out.println("Destination Addr: " + Integer.toBinaryString(entry.getDestinationAddress()));
 				System.out.println("Gateway Addr: " + Integer.toBinaryString(entry.getGatewayAddress()));
 				System.out.println("##########");
-			}	
+			}*/
 	
-			return null;
+			return maxPrefixEntry;
 			
 			/*****************************************************************/
         }
+	}
+	
+	/**
+	 * Find the contigious number of matching chars in two given Strings starting from the beginning.
+	 *
+	**/
+	private int NumPrefixMatch(String s1, String s2)
+	{
+		// Sanity check to make sure that the two prefixes are the same length
+		if (s1.length() != s2.length())
+		{
+			System.out.println("ERROR: IP + MASK AND DESTADDR ARE NOT THE SAME LENGTH!");
+			return 0;
+		}
+		
+		int total = 0;
+		for (int i = 0; i < s1.length(); i++)
+		{
+			if (s1.charAt(i) != s2.charAt(i)) 
+			{
+				return total;
+			}
+			total++;
+		}
+		return total;
 	}
 	
 	/**

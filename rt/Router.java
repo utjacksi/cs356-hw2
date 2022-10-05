@@ -5,6 +5,7 @@ import edu.ut.cs.sdn.vnet.DumpFile;
 import edu.ut.cs.sdn.vnet.Iface;
 
 import net.floodlightcontroller.packet.Ethernet;
+import net.floodlightcontroller.packet.IPv4;
 
 import java.util.Collection;
 
@@ -87,14 +88,64 @@ public class Router extends Device
 		/********************************************************************/
 		/* TODO: Handle packets                                             */
 		
-		routeTable.lookup(10);
+		// Check if Ethernet frame contains IPv4 packet
+		if (etherPacket.getEtherType() == etherPacket.TYPE_IPv4)
+		{
+			// Get the IPv4 header
+			IPv4 header = (IPv4) etherPacket.getPayload();
+
+			// Naive approach to verifying checksum (serialize, deserialize, check with previous checksum)
+			short initialChecksum = header.getChecksum();
+			header.resetChecksum();
+			byte[] serialize = header.serialize();
+			header = (IPv4) header.deserialize(serialize, 0, serialize.length);
+			short checksum = header.getChecksum();
+
+			if (initialChecksum == checksum)
+			{
+				// Verifies TTL, decrements TTL, calculates new checksum
+				if (header.getTtl() > 0)
+				{
+					byte newTtl = header.getTtl();
+					newTtl--;
+					header.setTtl(newTtl);
+					header.resetChecksum();
+					serialize = header.serialize();
+					header = (IPv4) header.deserialize(serialize, 0 , serialize.length);
+				}
+				else // Sanity check, if TTL = 0 then packet should be dropped
+				{
+					System.out.println("TTL = 0, PACKET DROPPED");
+				}
+			}
+			else // Sanity check, if checksum is not the same then packet should be dropped
+			{
+				System.out.println("VERIFICATION OF CHECKSUM FAILED, PACKET DROPPED");
+				// System.out.println("OLD, NEW CHECKSUM: " + initialChecksum + ", " + checksum);
+			}
+			
+			System.out.println("Header length: " + header.getHeaderLength() * 4);
+			System.out.println("Checksum value ones complement: " + Integer.toBinaryString(header.getChecksum()));
+			System.out.println("Checksum value ones complement: " + header.getChecksum());
+			System.out.println("Checksum value: " + /*Integer.toBinaryString(*/(~(header.getChecksum()) & 0xffff))/*)*/;
+			System.out.println("Checksum value: " + Integer.toBinaryString(~header.getChecksum() & 0xffff));	
+	
+			RouteEntry entry = routeTable.lookup(header.getDestinationAddress());
+			// System.out.println(Integer.toBinaryString(entry.getDestinationAddress()));
+			
+		}
+		else // Sanity check, TODO: Remove after, as we do nothing (drop packet) if doesn't contain IPv4 packet
+		{
+			System.out.println(etherPacket.getEtherType());
+			System.out.println(etherPacket.TYPE_IPv4);
+		}
 		
 		Collection<Iface> interfaces = this.getInterfaces().values();
-		for (Iface i : interfaces)
+		/*for (Iface i : interfaces)
 		{
 			System.out.println("Interface " + i.getName() + " IP: " + Integer.toBinaryString(i.getIpAddress()));
 			System.out.println("Interface " + i.getName() + " mask: " + Integer.toBinaryString(i.getSubnetMask()));
-		}		
+		}*/		
 		/********************************************************************/
 	}
 }
